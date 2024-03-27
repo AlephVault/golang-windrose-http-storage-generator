@@ -1,6 +1,8 @@
 package templates
 
-import "strings"
+import (
+	"strings"
+)
 
 var MultipleAppTemplates = strings.TrimSpace(`
 `)
