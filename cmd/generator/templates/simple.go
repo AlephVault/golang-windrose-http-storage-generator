@@ -186,10 +186,13 @@ func LaunchServer() {
 	host = strings.TrimSpace(host)
 	username = strings.TrimSpace(username)
 	password = strings.TrimSpace(password)
-	portValue, err := strconv.ParseUint(strings.TrimSpace(port), 10, 16); if err != nil { panic("invalid port") }
+	portValue, err := strconv.ParseUint(strings.TrimSpace(port), 10, 16)
+	if err != nil {
+		panic("invalid port")
+	}
 
 	settings := &dsl.Settings{
-		Debug:      true,
+		Debug: true,
 		Connection: dsl.Connection{
 			Args: dsl.ConnectionFields{
 				Host:     host,
@@ -210,10 +213,10 @@ func LaunchServer() {
 		Resources: map[string]dsl.Resource{
 			"accounts": {
 				TableRef: dsl.TableRef{
-					Db:         "universe",
+					Db:         "universe-simple",
 					Collection: "accounts",
 				},
-				Type: dsl.ListResource,
+				Type:       dsl.ListResource,
 				Projection: bson.M{"login": 1, "password": 1, "display_name": 1, "position": 1},
 				Methods: map[string]dsl.ResourceMethod{
 					"by-login": {
@@ -244,8 +247,8 @@ func LaunchServer() {
 						},
 					},
 				},
-				ModelType: dsl.ModelType[Account],
-				SoftDelete: true,
+				ModelType:      dsl.ModelType[Account],
+				SoftDelete:     true,
 				ListMaxResults: 20,
 				Indexes: map[string]dsl.Index{
 					"unique-login": {
@@ -261,10 +264,10 @@ func LaunchServer() {
 			"scopes": {
 				Type: dsl.ListResource,
 				TableRef: dsl.TableRef{
-					Db:         "universe",
+					Db:         "universe-simple",
 					Collection: "scopes",
 				},
-				ModelType: dsl.ModelType[Scope],
+				ModelType:  dsl.ModelType[Scope],
 				SoftDelete: true,
 				Projection: bson.M{"key": 1, "template_key": 1},
 				Indexes: map[string]dsl.Index{
@@ -277,10 +280,10 @@ func LaunchServer() {
 			"maps": {
 				Type: dsl.ListResource,
 				TableRef: dsl.TableRef{
-					Db:         "universe",
+					Db:         "universe-simple",
 					Collection: "maps",
 				},
-				ModelType: dsl.ModelType[Map],
+				ModelType:  dsl.ModelType[Map],
 				SoftDelete: true,
 				Projection: bson.M{"scope_id": 1, "index": 1},
 				Indexes: map[string]dsl.Index{
@@ -310,21 +313,66 @@ func LaunchServer() {
 	}
 
 	if application, err := app.MakeServer(settings, nil, func(client *mongo.Client, settings *dsl.Settings) {
-		collection := client.Database(settings.Auth.Db).Collection(settings.Auth.Collection)
 		ctx := context.Background()
-		token := auth.AuthToken{}
-		if result := collection.FindOne(ctx, bson.M{"_deleted": bson.M{"$ne": true}}).Decode(&token); result != nil {
-			if _, err := collection.InsertOne(ctx, &auth.AuthToken{
-				ApiKey:      apiKey,
-				ValidUntil:  nil,
-				Permissions: bson.M{
-					"*": bson.A{"read", "write", "delete"},
-				},
-			}); err != nil {
-				panic(err)
+
+		// First, know whether a setup already occurred.
+		lifecycleCollection := client.Database("lifecycle").Collection("setup")
+		var result bson.M
+		if err := lifecycleCollection.FindOne(ctx, bson.M{}).Decode(&result); err != nil {
+			// Checking whether an error occurred or trying to make
+			// a brand-new setup.
+			if !errors.Is(err, mongo.ErrNoDocuments) {
+				panic(fmt.Sprintf("error retrieving initial setup: %s", err))
+			} else if _, err := lifecycleCollection.InsertOne(ctx, bson.M{"done": true}); err != nil {
+				panic(fmt.Sprintf("error doing initial setup: %s", err))
 			}
+		} else {
+			// Setup is already done by this point.
+			return
 		}
-		
+
+		// Then, inserting the key.
+		slog.Info("Initializing default key...")
+		authCollection := client.Database(settings.Auth.Db).Collection(settings.Auth.Collection)
+		if _, err := authCollection.InsertOne(ctx, &auth.AuthToken{
+			ApiKey:     apiKey,
+			ValidUntil: nil,
+			Permissions: bson.M{
+				"*": bson.A{"read", "write", "delete"},
+			},
+		}); err != nil {
+			panic(fmt.Sprintf("error installing the setup: %s", err))
+		}
+
+		scopeWithMaps := map[string]int32{
+			// Populate this structure with your static scopes and maps.
+		}
+		scopesCollection := client.Database("universe-simple").Collection("scopes")
+		mapsCollection := client.Database("universe-simple").Collection("maps")
+		slog.Info("Initializing scopes...")
+		for scope, maps_ := range scopeWithMaps {
+			slog.Info(fmt.Sprintf("Initializing scope %s and their maps...", scope))
+			if result, err := scopesCollection.InsertOne(ctx, &Scope{
+				Key: scope, TemplateKey: "",
+			}); err != nil {
+				panic(fmt.Sprintf("error installing static scope %s: %s", scope, err))
+			} else {
+				mapDocs := make([]any, maps_)
+				var index int32
+				for index = 0; index < maps_; index++ {
+					mapDocs[index] = Map{
+						ScopeID: result.InsertedID.(primitive.ObjectID),
+						Index:   index,
+						Drop:    make([][]uint32, 0),
+					}
+				}
+				if _, err := mapsCollection.InsertMany(ctx, mapDocs); err != nil {
+					panic(fmt.Sprintf("error installing %d maps for scope: %s", maps_, scope))
+				}
+			}
+
+		}
+
 		// TODO add static scopes / maps insertion here.
 	}); err != nil {
 		// Remember this is an example.
