@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"golang-windrose-http-storage-generator/cmd/generator/templates"
+	"github.com/AlephVault/golang-windrose-http-storage-generator/cmd/generator/templates"
 	"os"
 	"path/filepath"
 	"strings"
