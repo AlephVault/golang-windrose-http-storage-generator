@@ -92,14 +92,14 @@ func LaunchServer() {
 		},
 		Auth: dsl.Auth{
 			TableRef: dsl.TableRef{
-				Db:         "auth-db-simple",
+				Db:         "auth-db",
 				Collection: "api-keys",
 			},
 		},
 		Resources: map[string]dsl.Resource{
 			"accounts": {
 				TableRef: dsl.TableRef{
-					Db:         "universe-simple",
+					Db:         "universe",
 					Collection: "accounts",
 				},
 				Type:       dsl.ListResource,
@@ -147,7 +147,7 @@ func LaunchServer() {
 			"scopes": {
 				Type: dsl.ListResource,
 				TableRef: dsl.TableRef{
-					Db:         "universe-simple",
+					Db:         "universe",
 					Collection: "scopes",
 				},
 				ModelType:  dsl.ModelType[Scope],
@@ -163,7 +163,7 @@ func LaunchServer() {
 			"maps": {
 				Type: dsl.ListResource,
 				TableRef: dsl.TableRef{
-					Db:         "universe-simple",
+					Db:         "universe",
 					Collection: "maps",
 				},
 				ModelType:  dsl.ModelType[Map],
@@ -327,8 +327,8 @@ func LaunchServer() {
 			// Populate this structure with your static scopes and maps.
 			// This is per-game configuration.
 		}
-		scopesCollection := client.Database("universe-simple").Collection("scopes")
-		mapsCollection := client.Database("universe-simple").Collection("maps")
+		scopesCollection := client.Database("universe").Collection("scopes")
+		mapsCollection := client.Database("universe").Collection("maps")
 		slog.Info("Initializing scopes...")
 		for scope, maps_ := range scopeWithMaps {
 			slog.Info(fmt.Sprintf("Initializing scope %s and their maps...", scope))
