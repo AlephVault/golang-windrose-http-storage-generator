@@ -33,7 +33,6 @@ services:
   http:
     build:
       context: ./server
-    command: waitress-serve --listen=0.0.0.0:80 app:app
     restart: always
     env_file: .env
     ports:
@@ -69,13 +68,14 @@ module my-project
 // You might want to change the golang version.
 go 1.22
 
-require github.com/AlephVault/golang-standard-http-mongodb-storage v1.1.1
+require github.com/AlephVault/golang-standard-http-mongodb-storage v1.2.0
 `)
 
 var dockerFileContents = strings.TrimSpace(`
 FROM golang:1.22 AS builder
 WORKDIR /app
 COPY ./ /app
+RUN GOPROXY=direct go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o myapp ./main.go
 
 FROM alpine:latest  
