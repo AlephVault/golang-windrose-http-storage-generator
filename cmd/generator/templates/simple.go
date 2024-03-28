@@ -119,7 +119,7 @@ func LaunchServer() {
 
 							filter_ := map[string]any{}
 							maps.Copy(filter_, filter)
-							filter["_deleted"] = bson.M{"$ne": true}
+							filter_["_deleted"] = bson.M{"$ne": true}
 							filter_["login"] = login
 							v := Account{}
 							if success, err := impl.GetDocument(context, collection.FindOne(context.Request().Context(), filter_), &v); success {
@@ -189,7 +189,7 @@ func LaunchServer() {
 							binder.String("scope", &scope)
 							filter_ := bson.M{}
 							maps.Copy(filter_, filter)
-							filter["_deleted"] = bson.M{"$ne": true}
+							filter_["_deleted"] = bson.M{"$ne": true}
 							if scope != "" {
 								filter_["key"] = scope
 							} else {
@@ -250,7 +250,7 @@ func LaunchServer() {
 							}
 							filter_ := bson.M{}
 							maps.Copy(filter_, filter)
-							filter["_deleted"] = bson.M{"$ne": true}
+							filter_["_deleted"] = bson.M{"$ne": true}
 							filter_["_id"] = id
 							var map_ Map
 							if success, err := impl.GetDocument(context, collection.FindOne(ctx, filter_), &map_); success {
