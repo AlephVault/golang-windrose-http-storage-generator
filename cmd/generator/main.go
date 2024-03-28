@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/AlephVault/golang-windrose-http-storage-generator/cmd/generator/templates"
 	"os"
@@ -75,7 +76,7 @@ var dockerFileContents = strings.TrimSpace(`
 FROM golang:1.22 AS builder
 WORKDIR /app
 COPY ./ /app
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o myapp ./generator.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o myapp ./main.go
 
 FROM alpine:latest  
 RUN apk --no-cache add ca-certificates
@@ -143,12 +144,12 @@ func makeAppFile(projectPath, template string) {
 		}
 	}
 
-	dumpFile(filepath.Join(projectPath, "server", "generator.go"), contents, 0644)
+	dumpFile(filepath.Join(projectPath, "server", "main.go"), contents, 0644)
 }
 
-// GenerateProject generates an entire project stack.
+// generateProject generates an entire project stack.
 // This one will be only suitable for development.
-func GenerateProject(
+func generateProject(
 	projectPath, template string,
 	mongoPort, httpPort, mongoExpressPort uint16,
 	mongoUser, mongoPass, serverAPIKey string,
@@ -159,4 +160,32 @@ func GenerateProject(
 	makeDockerFile(projectPath)
 	makeModuleFile(projectPath)
 	makeAppFile(projectPath, template)
+}
+
+func main() {
+	// Define flags
+	projectPath := flag.String("projectPath", "", "Path to the project (mandatory)")
+	template := flag.String("template", "", "Template to use (\"default:simple\", \"default:multichar\" or a path to a file)")
+	mongoDBPort := flag.Uint("mongoDBPort", 27017, "MongoDB port to use (default: 27017)")
+	httpPort := flag.Uint("httpPort", 8080, "HTTP port to use (default: 8080)")
+	mongoDBExpressPort := flag.Uint("mongoDBExpressPort", 8081, "MongoDB Express port to use (default: 8081)")
+	mongoDBUser := flag.String("mongoDBUser", "admin", "MongoDB user (default: \"admin\")")
+	mongoDBPassword := flag.String("mongoDBPassword", "p455w0rd", "MongoDB password (default: \"p455w0rd\")")
+	defaultAPIKey := flag.String("defaultAPIKey", "sample-abcdef", "Default server API key (default: \"sample-abcdef\")")
+
+	// Parse the flags
+	flag.Parse()
+
+	// Check for mandatory string arguments
+	if *projectPath == "" || *template == "" {
+		fmt.Println("projectPath and template are required.")
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	generateProject(
+		*projectPath, *template,
+		uint16(*mongoDBPort), uint16(*httpPort), uint16(*mongoDBExpressPort),
+		*mongoDBUser, *mongoDBPassword, *defaultAPIKey,
+	)
 }
