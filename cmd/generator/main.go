@@ -68,7 +68,7 @@ module my-project
 // You might want to change the golang version.
 go 1.22
 
-require github.com/AlephVault/golang-standard-http-mongodb-storage v1.2.1
+require github.com/AlephVault/golang-standard-http-mongodb-storage v1.2.2
 `)
 
 var dockerFileContents = strings.TrimSpace(`

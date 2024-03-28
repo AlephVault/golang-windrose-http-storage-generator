@@ -319,19 +319,22 @@ func LaunchServer() {
 								return err
 							}
 							if body.From < 0 {
-								return context.JSON(http.StatusBadRequest, echo.Map{})
+								return context.JSON(http.StatusBadRequest, echo.Map{"code": "invalid-from"})
 							}
 							filter_ := bson.M{}
 							maps.Copy(filter_, filter)
 							filter_["_deleted"] = bson.M{"$ne": true}
 							filter_["_id"] = id
 							var map_ Map
-							if success, err := impl.GetDocument(context, collection.FindOne(ctx, filter_), &map_); success {
+							if success, err := impl.GetDocument(context, collection.FindOne(ctx, filter_), &map_); !success {
 								return err
 							}
 
 							// The final computed drop.
 							var drop = map_.Drop
+							if drop == nil {
+								drop = [][][]uint32{}
+							}
 							// The size of the drop segment to add.
 							var newDropLength = len(body.Drops)
 							// The size of the current drop.
@@ -352,7 +355,7 @@ func LaunchServer() {
 								drop[i+from_] = body.Drops[i]
 							}
 
-							if _, err := collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"drop": drop}); err != nil {
+							if _, err := collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"drop": drop}}); err != nil {
 								return err
 							} else {
 								return responses.Ok(context)
