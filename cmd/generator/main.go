@@ -121,7 +121,7 @@ func makeEnvFile(projectPath, mongoUser, mongoPass, serverAPIKey string) {
 
 // makeModuleFile creates the go.mod file.
 func makeModuleFile(projectPath string) {
-	dumpFile(filepath.Join(projectPath, "go.mod"), moduleFileContents, 0644)
+	dumpFile(filepath.Join(projectPath, "server", "go.mod"), moduleFileContents, 0644)
 }
 
 // makeDockerFile creates the proper dockerfile contents.
@@ -154,6 +154,9 @@ func generateProject(
 	mongoPort, httpPort, mongoExpressPort uint16,
 	mongoUser, mongoPass, serverAPIKey string,
 ) {
+	if err := os.MkdirAll(filepath.Join(projectPath, "server"), 0755); err != nil {
+		panic("could not create project directory " + projectPath + ": " + err.Error())
+	}
 	makeDockerComposeFile(projectPath, mongoPort, httpPort, mongoExpressPort)
 	makeDockerComposeLauncherFile(projectPath)
 	makeEnvFile(projectPath, mongoUser, mongoPass, serverAPIKey)
@@ -163,22 +166,28 @@ func generateProject(
 }
 
 func main() {
+	defer func() {
+		if v := recover(); v != nil {
+			_, _ = fmt.Fprintln(os.Stderr, "Error on generation:", v)
+		}
+	}()
+
 	// Define flags
 	projectPath := flag.String("projectPath", "", "Path to the project (mandatory)")
 	template := flag.String("template", "", "Template to use (\"default:simple\", \"default:multichar\" or a path to a file)")
-	mongoDBPort := flag.Uint("mongoDBPort", 27017, "MongoDB port to use (default: 27017)")
-	httpPort := flag.Uint("httpPort", 8080, "HTTP port to use (default: 8080)")
-	mongoDBExpressPort := flag.Uint("mongoDBExpressPort", 8081, "MongoDB Express port to use (default: 8081)")
-	mongoDBUser := flag.String("mongoDBUser", "admin", "MongoDB user (default: \"admin\")")
-	mongoDBPassword := flag.String("mongoDBPassword", "p455w0rd", "MongoDB password (default: \"p455w0rd\")")
-	defaultAPIKey := flag.String("defaultAPIKey", "sample-abcdef", "Default server API key (default: \"sample-abcdef\")")
+	mongoDBPort := flag.Uint("mongoDBPort", 27017, "MongoDB port to use")
+	httpPort := flag.Uint("httpPort", 8080, "HTTP port to use")
+	mongoDBExpressPort := flag.Uint("mongoDBExpressPort", 8081, "MongoDB Express port to use")
+	mongoDBUser := flag.String("mongoDBUser", "admin", "MongoDB user")
+	mongoDBPassword := flag.String("mongoDBPassword", "p455w0rd", "MongoDB password")
+	defaultAPIKey := flag.String("defaultAPIKey", "sample-abcdef", "Default server API key")
 
 	// Parse the flags
 	flag.Parse()
 
 	// Check for mandatory string arguments
 	if *projectPath == "" || *template == "" {
-		fmt.Println("projectPath and template are required.")
+		_, _ = fmt.Fprintln(os.Stderr, "projectPath and template are required.")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
