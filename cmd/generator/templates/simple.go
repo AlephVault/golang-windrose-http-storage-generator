@@ -173,6 +173,10 @@ func LaunchServer() {
 						Unique: true,
 						Fields: []string{"scope_id", "index"},
 					},
+					"scope": {
+						Unique: false,
+						Fields: []string{"scope_id"},
+					},
 				},
 				Methods: map[string]dsl.ResourceMethod{
 					"by-scope": {
