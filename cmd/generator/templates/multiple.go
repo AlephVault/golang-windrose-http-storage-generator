@@ -431,6 +431,7 @@ func LaunchServer() {
 		// It will panic only on error.
 		if err := application.Run("0.0.0.0:80"); err != nil {
 			slog.Error("An error has occurred: " + err.Error())
+            os.Exit(1)
 		}
 	}
 }
