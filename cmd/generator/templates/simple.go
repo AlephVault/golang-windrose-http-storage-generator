@@ -26,6 +26,8 @@ import (
 	"maps"
 	"net/http"
 	"os"
+	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -56,6 +58,19 @@ type Map struct {
 	ScopeID primitive.ObjectID #bson:"scope_id" json:"scope_id" validate:"required"#
 	Index   int32              #bson:"index" json:"index" validate:"gte=0"#
 	Drop    [][][]uint32       #bson:"drop" json:"drop"#
+}
+
+// regexFunction creates a new regex-validator function.
+func regexFunction(regex *regexp.Regexp) func(fl validator.FieldLevel) bool {
+	return func(fl validator.FieldLevel) bool {
+		field := fl.Field()
+		switch field.Kind() {
+		case reflect.String:
+			return regex.MatchString(field.String())
+		default:
+			return false
+		}
+	}
 }
 
 func LaunchServer() {
@@ -294,7 +309,10 @@ func LaunchServer() {
 		},
 	}
 
-	if application, err := app.MakeServer(settings, nil, func(client *mongo.Client, settings *dsl.Settings) {
+	if application, err := app.MakeServer(settings, func(validate *validator.Validate) {
+        _ = validate.RegisterValidation("account-name", regexFunction(regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]+$")))
+		_ = validate.RegisterValidation("char-name", regexFunction(regexp.MustCompile("^[a-zA-Z ]+$")))
+	}, func(client *mongo.Client, settings *dsl.Settings) {
 		ctx := context.Background()
 
 		// First, know whether a setup already occurred.
