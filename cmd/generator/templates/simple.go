@@ -41,7 +41,7 @@ type Position struct {
 
 type Account struct {
 	ID          primitive.ObjectID #bson:"_id,omitempty" json:"_id,omitempty"#
-	Login       string             #bson:"login" json:"login" validate:"required"#
+	Login       string             #bson:"login" json:"login" validate:"account-name,required"#
 	Password    string             #bson:"password" json:"password" validate:"required"#
 	DisplayName string             #bson:"display_name" json:"display_name" validate:"required"#
 	Position    Position           #bson:"position" json:"position" validate:"dive"#

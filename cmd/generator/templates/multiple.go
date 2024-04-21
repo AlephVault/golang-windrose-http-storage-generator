@@ -42,13 +42,13 @@ type Position struct {
 type Character struct {
 	ID          primitive.ObjectID #bson:"_id,omitempty" json:"_id,omitempty"#
 	AccountID   primitive.ObjectID #bson:"account_id" json:"account_id" validate:"required"#
-	DisplayName string             #bson:"display_name" json:"display_name" validate:"required"#
+	DisplayName string             #bson:"display_name" json:"display_name" validate:"char-name,required"#
 	Position    Position           #bson:"position" json:"position" validate:"dive"#
 }
 
 type Account struct {
 	ID       primitive.ObjectID #bson:"_id,omitempty" json:"_id,omitempty"#
-	Login    string             #bson:"login" json:"login" validate:"required"#
+	Login    string             #bson:"login" json:"login" validate:"account-name,required"#
 	Password string             #bson:"password" json:"password" validate:"required"#
 }
 
